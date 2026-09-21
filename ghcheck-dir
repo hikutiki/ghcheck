@@ -1,0 +1,9 @@
+#!/bin/sh
+# 入口1: 指定ディレクトリ内の追跡ファイルを全件検査（無指定はリポジトリ全体）
+# 使い方: ghcheck-dir [dir ...] [-- 追加オプション]   例: ghcheck-dir src lib -- --history
+HERE=$(cd "$(dirname "$0")" && pwd)
+DIRS=""
+while [ $# -gt 0 ]; do
+  case "$1" in --) shift; break;; -*) break;; *) DIRS="$DIRS --dir $1"; shift;; esac
+done
+exec python3 "$HERE/github_upload_check.py" --path "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" --all --confirm $DIRS "$@"

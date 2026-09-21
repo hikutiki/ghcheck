@@ -1,0 +1,5 @@
+#!/bin/sh
+# 入口2: これから push する差分（upstream/origin/main 以降）だけ検査。--staged で commit 前のステージ分。
+# 使い方: ghcheck-commit [--staged] [--since REF] [その他オプション]
+HERE=$(cd "$(dirname "$0")" && pwd)
+exec python3 "$HERE/github_upload_check.py" --path "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" --confirm "$@"

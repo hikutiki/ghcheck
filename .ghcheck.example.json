@@ -1,0 +1,9 @@
+{
+  "_comment": "リポジトリ直下に .ghcheck.json として置くと自動で読み込まれ、同梱の既定規則に追記合成される。",
+  "forbid_dirs": ["notes", "private", "runtime"],
+  "ignore_line_keywords": ["/Users/", "notion.so"],
+  "downgrade_globs": ["*/tests/*", "*.test.js"],
+  "secret_patterns": [
+    {"label": "社内トークン", "regex": "MYCORP-[A-Z0-9]{32}"}
+  ]
+}
