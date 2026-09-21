@@ -3,6 +3,7 @@
   "forbid_dirs": ["notes", "private", "runtime"],
   "ignore_line_keywords": ["/Users/", "notion.so"],
   "downgrade_globs": ["*/tests/*", "*.test.js"],
+  "allow_public": ["owner/intentionally-public-repo"],
   "secret_patterns": [
     {"label": "社内トークン", "regex": "MYCORP-[A-Z0-9]{32}"}
   ]

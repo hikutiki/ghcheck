@@ -79,10 +79,11 @@ def load_rules(extra: list[str], repo: Path | None = None) -> dict:
       entropy:          {"min_len": 20, "threshold": 4.0, "charset": regex}  高エントロピー文字列 → WARN
       ignore_line_keywords: [str, ...]  行にこの語があれば疑い判定から除外（sha256, commit 等）
       downgrade_globs:  [glob, ...]     一致するpath（tests/ 等）では secret_patterns の FAIL を WARN に格下げ
+      allow_public:     [owner/name]    公開を意図したリポジトリ。PUBLIC でも FAIL にしない（.ghcheck.json に書く）
       forbid_dirs:      [dir, ...]            追跡ファイルが含まれる → FAIL
       skip_suffixes:    [".png", ...]         本文走査を省略する拡張子
     """
-    rules = {"dangerous_names": [], "dangerous_warn": [], "secret_patterns": [], "warn_patterns": [], "forbid_dirs": [], "skip_suffixes": [], "ignore_line_keywords": [], "downgrade_globs": []}
+    rules = {"dangerous_names": [], "dangerous_warn": [], "secret_patterns": [], "warn_patterns": [], "forbid_dirs": [], "skip_suffixes": [], "ignore_line_keywords": [], "downgrade_globs": [], "allow_public": []}
     entropy = {"min_len": 20, "threshold": 4.0, "charset": "[A-Za-z0-9_\\-+/=]"}
     repo_rules = repo / REPO_RULES_NAME if repo else None
     for path in [RULES_FILE, *([repo_rules] if repo_rules else []), *map(Path, extra)]:
@@ -139,7 +140,7 @@ class Report:
     def info(self, m: str) -> None: self.infos.append(m)
 
 
-def check_visibility(repo: Path, repo_slug: str | None, rep: Report) -> None:
+def check_visibility(repo: Path, repo_slug: str | None, rep: Report, allow_public: list[str] | None = None) -> None:
     target = repo_slug
     if not target:
         remote = git(repo, "remote", "get-url", "origin", check=False).strip()
@@ -159,8 +160,10 @@ def check_visibility(repo: Path, repo_slug: str | None, rep: Report) -> None:
     vis = r.stdout.strip().upper()
     if vis == "PRIVATE":
         rep.info(f"可視性 {target}: PRIVATE")
+    elif target in (allow_public or []):
+        rep.info(f"可視性 {target}: {vis}（allow_public で許可済み。秘密・禁止dir の検査は通常どおり）")
     else:
-        rep.fail(f"可視性 {target}: {vis}（Private以外へのpushは禁止）")
+        rep.fail(f"可視性 {target}: {vis}（Private以外へのpushは禁止。意図した公開なら .ghcheck.json の allow_public に追加）")
 
 
 def default_base(repo: Path) -> str | None:
@@ -440,7 +443,7 @@ def main() -> int:
         srcs = RULES_FILE.name + (f"+{REPO_RULES_NAME}" if (repo / REPO_RULES_NAME).is_file() else "") + ("+" + ",".join(a.rules) if a.rules else "")
         rep.info(f"規則: 危険名{len(rules['dangerous_names'])+len(rules['dangerous_warn'])} 秘密パターン{len(rules['secret_patterns'])} 禁止dir{len(rules['forbid_dirs'])} ({srcs})")
         if not a.skip_visibility:
-            check_visibility(repo, a.repo, rep)
+            check_visibility(repo, a.repo, rep, rules["allow_public"])
         base = None if (a.all or a.staged) else (a.since or default_base(repo))
         files, scope = list_files(repo, a.staged, base)
         if a.dir:
